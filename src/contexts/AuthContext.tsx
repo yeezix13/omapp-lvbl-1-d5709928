@@ -38,14 +38,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const demoUser = {
         id: 'demo-user-id',
         email: 'demo@orientemoi.com',
+        aud: 'authenticated',
+        role: 'authenticated',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        email_confirmed_at: new Date().toISOString(),
+        last_sign_in_at: new Date().toISOString(),
+        app_metadata: {},
         user_metadata: {
           first_name: 'Demo',
           last_name: 'User'
-        }
+        },
+        identities: []
       } as User
       
+      const demoSession = {
+        user: demoUser,
+        access_token: 'demo-token',
+        refresh_token: 'demo-refresh-token',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        token_type: 'bearer'
+      } as Session
+      
       setUser(demoUser)
-      setSession({ user: demoUser } as Session)
+      setSession(demoSession)
       setLoading(false)
       return
     }

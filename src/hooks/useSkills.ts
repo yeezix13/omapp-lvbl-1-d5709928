@@ -3,50 +3,48 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
 
-type Grade = {
+type Skill = {
   id: string
   user_id: string
-  semester: string
-  year: number
-  subject: string
-  grade: number
+  skill_type: 'hard' | 'soft'
+  skill_name: string
+  level: number
   created_at: string
 }
 
-type GradeInsert = {
-  semester: string
-  year: number
-  subject: string
-  grade: number
+type SkillInsert = {
+  skill_type: 'hard' | 'soft'
+  skill_name: string
+  level: number
 }
 
-export const useGrades = () => {
+export const useSkills = () => {
   const { user } = useAuth()
-  const [grades, setGrades] = useState<Grade[]>([])
+  const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
-      fetchGrades()
+      fetchSkills()
     } else {
-      setGrades([])
+      setSkills([])
       setLoading(false)
     }
   }, [user])
 
-  const fetchGrades = async () => {
+  const fetchSkills = async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
-        .from('grades')
+        .from('skills')
         .select('*')
         .eq('user_id', user!.id)
-        .order('year', { ascending: false })
-        .order('semester', { ascending: true })
+        .order('skill_type', { ascending: true })
+        .order('skill_name', { ascending: true })
 
       if (error) throw error
-      setGrades(data || [])
+      setSkills(data || [])
     } catch (error: any) {
       setError(error.message)
     } finally {
@@ -54,13 +52,13 @@ export const useGrades = () => {
     }
   }
 
-  const addGrade = async (grade: GradeInsert) => {
+  const addSkill = async (skill: SkillInsert) => {
     try {
       const { data, error } = await supabase
-        .from('grades')
+        .from('skills')
         .insert([
           {
-            ...grade,
+            ...skill,
             user_id: user!.id,
           },
         ])
@@ -68,7 +66,7 @@ export const useGrades = () => {
         .single()
 
       if (error) throw error
-      setGrades(prev => [...prev, data])
+      setSkills(prev => [...prev, data])
       return { data, error: null }
     } catch (error: any) {
       setError(error.message)
@@ -76,17 +74,17 @@ export const useGrades = () => {
     }
   }
 
-  const updateGrade = async (id: string, updates: Partial<Grade>) => {
+  const updateSkill = async (id: string, updates: Partial<Skill>) => {
     try {
       const { data, error } = await supabase
-        .from('grades')
+        .from('skills')
         .update(updates)
         .eq('id', id)
         .select()
         .single()
 
       if (error) throw error
-      setGrades(prev => prev.map(grade => grade.id === id ? data : grade))
+      setSkills(prev => prev.map(skill => skill.id === id ? data : skill))
       return { data, error: null }
     } catch (error: any) {
       setError(error.message)
@@ -94,15 +92,15 @@ export const useGrades = () => {
     }
   }
 
-  const deleteGrade = async (id: string) => {
+  const deleteSkill = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('grades')
+        .from('skills')
         .delete()
         .eq('id', id)
 
       if (error) throw error
-      setGrades(prev => prev.filter(grade => grade.id !== id))
+      setSkills(prev => prev.filter(skill => skill.id !== id))
       return { error: null }
     } catch (error: any) {
       setError(error.message)
@@ -111,12 +109,12 @@ export const useGrades = () => {
   }
 
   return {
-    grades,
+    skills,
     loading,
     error,
-    addGrade,
-    updateGrade,
-    deleteGrade,
-    refetch: fetchGrades,
+    addSkill,
+    updateSkill,
+    deleteSkill,
+    refetch: fetchSkills,
   }
 }

@@ -5,7 +5,6 @@ export interface Database {
       profiles: {
         Row: {
           id: string
-          email: string
           first_name: string | null
           last_name: string | null
           birth_date: string | null
@@ -15,15 +14,14 @@ export interface Database {
           postal_code: string | null
           current_level: string | null
           institution: string | null
-          specialization: string | null
+          specializations: string | null
           interests: string | null
-          languages: string[] | null
+          languages: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
-          email: string
           first_name?: string | null
           last_name?: string | null
           birth_date?: string | null
@@ -33,15 +31,14 @@ export interface Database {
           postal_code?: string | null
           current_level?: string | null
           institution?: string | null
-          specialization?: string | null
+          specializations?: string | null
           interests?: string | null
-          languages?: string[] | null
+          languages?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          email?: string
           first_name?: string | null
           last_name?: string | null
           birth_date?: string | null
@@ -51,9 +48,9 @@ export interface Database {
           postal_code?: string | null
           current_level?: string | null
           institution?: string | null
-          specialization?: string | null
+          specializations?: string | null
           interests?: string | null
-          languages?: string[] | null
+          languages?: string | null
           created_at?: string
           updated_at?: string
         }

@@ -3,37 +3,55 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Plus, TrendingUp } from "lucide-react";
+import { useGrades } from "../hooks/useGrades";
 
 export const Grades = () => {
-  const semesters = [
-    {
-      id: 1,
-      name: "S1 - Première année",
-      subjects: [
-        { name: "Mathématiques", grade: "16/20", coefficient: 3 },
-        { name: "Informatique", grade: "18/20", coefficient: 4 },
-        { name: "Physique", grade: "14/20", coefficient: 2 },
-        { name: "Anglais", grade: "15/20", coefficient: 2 },
-      ],
-      average: "16.2"
-    },
-    {
-      id: 2,
-      name: "S2 - Première année",
-      subjects: [
-        { name: "Base de données", grade: "17/20", coefficient: 3 },
-        { name: "Algorithmique", grade: "19/20", coefficient: 4 },
-        { name: "Statistiques", grade: "15/20", coefficient: 2 },
-        { name: "Communication", grade: "16/20", coefficient: 1 },
-      ],
-      average: "17.1"
+  const { grades, loading, error } = useGrades();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2f57ef]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-600 p-8">
+        <p>Erreur lors du chargement des notes : {error}</p>
+      </div>
+    );
+  }
+
+  // Group grades by semester and year
+  const groupedGrades = grades.reduce((acc, grade) => {
+    const key = `${grade.year}-${grade.semester}`;
+    if (!acc[key]) {
+      acc[key] = {
+        year: grade.year,
+        semester: grade.semester,
+        subjects: []
+      };
     }
-  ];
+    acc[key].subjects.push(grade);
+    return acc;
+  }, {} as Record<string, { year: number; semester: string; subjects: typeof grades }>);
+
+  const semesters = Object.values(groupedGrades).sort((a, b) => {
+    if (a.year !== b.year) return b.year - a.year;
+    return a.semester.localeCompare(b.semester);
+  });
+
+  // Calculate statistics
+  const totalGrades = grades.length;
+  const averageGrade = totalGrades > 0 ? (grades.reduce((sum, grade) => sum + grade.grade, 0) / totalGrades).toFixed(1) : "0";
+  const validatedSubjects = grades.filter(grade => grade.grade >= 10).length;
 
   const stats = [
-    { label: "Moyenne générale", value: "16.2", icon: TrendingUp, color: "text-blue-600" },
-    { label: "Matières validées", value: "18/20", icon: BookOpen, color: "text-green-600" },
-    { label: "Crédits ECTS", value: "54/60", icon: Badge, color: "text-purple-600" },
+    { label: "Moyenne générale", value: `${averageGrade}/20`, icon: TrendingUp, color: "text-blue-600" },
+    { label: "Matières validées", value: `${validatedSubjects}/${totalGrades}`, icon: BookOpen, color: "text-green-600" },
+    { label: "Notes enregistrées", value: totalGrades.toString(), icon: Badge, color: "text-purple-600" },
   ];
 
   return (
@@ -74,53 +92,74 @@ export const Grades = () => {
       <div className="space-y-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Détail des notes</h2>
         
-        {semesters.map((semester) => (
-          <Card key={semester.id} className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-gray-900 dark:text-white">{semester.name}</CardTitle>
-                <Badge className="bg-[#2f57ef] text-white">
-                  Moyenne: {semester.average}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Matière</th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-900 dark:text-white">Note</th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-900 dark:text-white">Coefficient</th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-900 dark:text-white">Semestre</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {semester.subjects.map((subject, index) => (
-                      <tr key={index} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td className="py-3 px-4 text-gray-900 dark:text-white">{subject.name}</td>
-                        <td className="py-3 px-4 text-center">
-                          <Badge 
-                            variant="outline" 
-                            className={`${
-                              parseInt(subject.grade) >= 16 ? 'text-green-600 border-green-600' :
-                              parseInt(subject.grade) >= 12 ? 'text-orange-600 border-orange-600' :
-                              'text-red-600 border-red-600'
-                            }`}
-                          >
-                            {subject.grade}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-300">{subject.coefficient}</td>
-                        <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-300">S{semester.id}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        {semesters.length === 0 ? (
+          <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600 dark:text-gray-300">Aucune note enregistrée pour le moment.</p>
+              <Button className="mt-4 bg-[#2f57ef] hover:bg-[#2347d4]">
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter votre première note
+              </Button>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          semesters.map((semester, index) => {
+            const semesterAverage = semester.subjects.length > 0 
+              ? (semester.subjects.reduce((sum, subject) => sum + subject.grade, 0) / semester.subjects.length).toFixed(1)
+              : "0";
+            
+            return (
+              <Card key={index} className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-gray-900 dark:text-white">
+                      {semester.semester} - {semester.year}
+                    </CardTitle>
+                    <Badge className="bg-[#2f57ef] text-white">
+                      Moyenne: {semesterAverage}/20
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Matière</th>
+                          <th className="text-center py-3 px-4 font-medium text-gray-900 dark:text-white">Note</th>
+                          <th className="text-center py-3 px-4 font-medium text-gray-900 dark:text-white">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {semester.subjects.map((subject) => (
+                          <tr key={subject.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <td className="py-3 px-4 text-gray-900 dark:text-white">{subject.subject}</td>
+                            <td className="py-3 px-4 text-center">
+                              <Badge 
+                                variant="outline" 
+                                className={`${
+                                  subject.grade >= 16 ? 'text-green-600 border-green-600' :
+                                  subject.grade >= 12 ? 'text-orange-600 border-orange-600' :
+                                  subject.grade >= 10 ? 'text-yellow-600 border-yellow-600' :
+                                  'text-red-600 border-red-600'
+                                }`}
+                              >
+                                {subject.grade}/20
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-300">
+                              {new Date(subject.created_at).toLocaleDateString('fr-FR')}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );

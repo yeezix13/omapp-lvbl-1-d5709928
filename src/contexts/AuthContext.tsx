@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase, isDemoMode } from '../lib/supabase'
 
 interface AuthContextType {
   user: User | null
@@ -33,6 +33,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (isDemoMode) {
+      // In demo mode, simulate a logged-in user
+      const demoUser = {
+        id: 'demo-user-id',
+        email: 'demo@orientemoi.com',
+        user_metadata: {
+          first_name: 'Demo',
+          last_name: 'User'
+        }
+      } as User
+      
+      setUser(demoUser)
+      setSession({ user: demoUser } as Session)
+      setLoading(false)
+      return
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -53,6 +70,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [])
 
   const signUp = async (email: string, password: string, userData?: any) => {
+    if (isDemoMode) {
+      console.log('Demo mode: Sign up simulation for', email)
+      return { data: { user: null }, error: null }
+    }
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -64,6 +86,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const signIn = async (email: string, password: string) => {
+    if (isDemoMode) {
+      console.log('Demo mode: Sign in simulation for', email)
+      return { data: { user: null }, error: null }
+    }
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -72,10 +99,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const signOut = async () => {
+    if (isDemoMode) {
+      console.log('Demo mode: Sign out simulation')
+      setUser(null)
+      setSession(null)
+      return
+    }
+    
     await supabase.auth.signOut()
   }
 
   const signInWithGoogle = async () => {
+    if (isDemoMode) {
+      console.log('Demo mode: Google sign in simulation')
+      return { data: null, error: null }
+    }
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

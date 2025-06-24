@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, isDemoMode } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { Database } from '../types/database'
 
@@ -15,11 +15,39 @@ export const useGrades = () => {
 
   useEffect(() => {
     if (user) {
-      fetchGrades()
+      if (isDemoMode) {
+        // Demo mode: simulate grades data
+        const demoGrades: Grade[] = [
+          {
+            id: 'demo-grade-1',
+            user_id: user.id,
+            semester: 'S1',
+            year: 2023,
+            subject: 'Mathématiques',
+            grade: 16,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'demo-grade-2',
+            user_id: user.id,
+            semester: 'S1',
+            year: 2023,
+            subject: 'Français',
+            grade: 14,
+            created_at: new Date().toISOString()
+          }
+        ]
+        setGrades(demoGrades)
+        setLoading(false)
+      } else {
+        fetchGrades()
+      }
     }
   }, [user])
 
   const fetchGrades = async () => {
+    if (isDemoMode) return
+    
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -39,6 +67,18 @@ export const useGrades = () => {
   }
 
   const addGrade = async (grade: Omit<GradeInsert, 'user_id'>) => {
+    if (isDemoMode) {
+      console.log('Demo mode: Add grade simulation', grade)
+      const newGrade: Grade = {
+        id: `demo-grade-${Date.now()}`,
+        user_id: user!.id,
+        ...grade,
+        created_at: new Date().toISOString()
+      }
+      setGrades(prev => [...prev, newGrade])
+      return { data: newGrade, error: null }
+    }
+    
     try {
       const { data, error } = await supabase
         .from('grades')
@@ -61,6 +101,12 @@ export const useGrades = () => {
   }
 
   const updateGrade = async (id: string, updates: Partial<Grade>) => {
+    if (isDemoMode) {
+      console.log('Demo mode: Update grade simulation', id, updates)
+      setGrades(prev => prev.map(grade => grade.id === id ? { ...grade, ...updates } : grade))
+      return { data: null, error: null }
+    }
+    
     try {
       const { data, error } = await supabase
         .from('grades')
@@ -79,6 +125,12 @@ export const useGrades = () => {
   }
 
   const deleteGrade = async (id: string) => {
+    if (isDemoMode) {
+      console.log('Demo mode: Delete grade simulation', id)
+      setGrades(prev => prev.filter(grade => grade.id !== id))
+      return { error: null }
+    }
+    
     try {
       const { error } = await supabase
         .from('grades')

@@ -1,16 +1,27 @@
 
-import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { AuthPage } from "../components/AuthPage";
 import { Dashboard } from "../components/Dashboard";
 
 const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, loading } = useAuth();
 
-  if (!isAuthenticated) {
-    return <AuthPage onLogin={() => setIsAuthenticated(true)} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2f57ef] mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
   }
 
-  return <Dashboard onLogout={() => setIsAuthenticated(false)} />;
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  return <Dashboard />;
 };
 
 export default Index;

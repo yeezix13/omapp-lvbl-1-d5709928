@@ -1,11 +1,27 @@
 
 import { useState, useEffect } from 'react'
-import { supabase, isDemoMode } from '../lib/supabase'
+import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
-import { Database } from '../types/database'
 
-type Profile = Database['public']['Tables']['profiles']['Row']
-type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
+type Profile = {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  birth_date: string | null
+  phone: string | null
+  address: string | null
+  city: string | null
+  postal_code: string | null
+  current_level: string | null
+  institution: string | null
+  specializations: string | null
+  interests: string | null
+  languages: string | null
+  created_at: string
+  updated_at: string
+}
+
+type ProfileUpdate = Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>
 
 export const useProfile = () => {
   const { user } = useAuth()
@@ -15,31 +31,7 @@ export const useProfile = () => {
 
   useEffect(() => {
     if (user) {
-      if (isDemoMode) {
-        // Demo mode: simulate profile data
-        const demoProfile: Profile = {
-          id: user.id,
-          email: user.email!,
-          first_name: 'Demo',
-          last_name: 'User',
-          birth_date: '2000-01-01',
-          phone: null,
-          address: null,
-          city: null,
-          postal_code: null,
-          current_level: null,
-          institution: null,
-          specialization: null,
-          interests: null,
-          languages: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-        setProfile(demoProfile)
-        setLoading(false)
-      } else {
-        fetchProfile()
-      }
+      fetchProfile()
     } else {
       setProfile(null)
       setLoading(false)
@@ -47,8 +39,6 @@ export const useProfile = () => {
   }, [user])
 
   const fetchProfile = async () => {
-    if (isDemoMode) return
-    
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -75,14 +65,14 @@ export const useProfile = () => {
   }
 
   const createProfile = async () => {
-    if (isDemoMode) return
-    
     const { data, error } = await supabase
       .from('profiles')
       .insert([
         {
           id: user!.id,
-          email: user!.email!,
+          first_name: user!.user_metadata?.first_name || null,
+          last_name: user!.user_metadata?.last_name || null,
+          birth_date: user!.user_metadata?.birth_date || null,
         },
       ])
       .select()
@@ -93,14 +83,6 @@ export const useProfile = () => {
   }
 
   const updateProfile = async (updates: ProfileUpdate) => {
-    if (isDemoMode) {
-      console.log('Demo mode: Profile update simulation', updates)
-      if (profile) {
-        setProfile({ ...profile, ...updates })
-      }
-      return { data: profile, error: null }
-    }
-    
     try {
       setLoading(true)
       const { data, error } = await supabase

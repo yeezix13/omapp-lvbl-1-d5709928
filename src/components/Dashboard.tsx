@@ -9,18 +9,20 @@ import { Skills } from "./Skills";
 import { Tests } from "./Tests";
 import { Motivations } from "./Motivations";
 import { Analysis } from "./Analysis";
+import { useAuth } from "../contexts/AuthContext";
 
-interface DashboardProps {
-  onLogout: () => void;
-}
-
-export const Dashboard = ({ onLogout }: DashboardProps) => {
+export const Dashboard = () => {
   const [activeSection, setActiveSection] = useState("overview");
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const { signOut } = useAuth();
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle('dark');
+  };
+
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const renderContent = () => {
@@ -50,7 +52,7 @@ export const Dashboard = ({ onLogout }: DashboardProps) => {
         <Sidebar 
           activeSection={activeSection}
           setActiveSection={setActiveSection}
-          onLogout={onLogout}
+          onLogout={handleLogout}
           isDarkMode={isDarkMode}
           toggleDarkMode={toggleDarkMode}
         />

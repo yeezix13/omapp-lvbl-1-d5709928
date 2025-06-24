@@ -6,22 +6,119 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraduationCap, Mail, Lock, User, Calendar, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
-interface AuthPageProps {
-  onLogin: () => void;
-}
-
-export const AuthPage = ({ onLogin }: AuthPageProps) => {
+export const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    birthDate: ""
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onLogin();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { toast } = useToast();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  const handleGoogleAuth = () => {
-    onLogin();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await signIn(formData.email, formData.password);
+      
+      if (error) {
+        toast({
+          title: "Erreur de connexion",
+          description: error.message === "Invalid login credentials" 
+            ? "Email ou mot de passe incorrect" 
+            : error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Connexion réussie",
+          description: "Bienvenue !",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await signUp(formData.email, formData.password, {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        birth_date: formData.birthDate
+      });
+      
+      if (error) {
+        toast({
+          title: "Erreur d'inscription",
+          description: error.message === "User already registered" 
+            ? "Un compte avec cet email existe déjà" 
+            : error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Inscription réussie",
+          description: "Vérifiez votre email pour confirmer votre compte",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de se connecter avec Google",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,16 +157,19 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
               </TabsList>
 
               <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id="email"
+                        name="email"
                         type="email"
                         placeholder="votre@email.com"
                         className="pl-10 h-12 border-gray-200 dark:border-gray-600 focus:border-[#2f57ef] focus:ring-[#2f57ef]"
+                        value={formData.email}
+                        onChange={handleInputChange}
                         required
                       />
                     </div>
@@ -81,9 +181,12 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id="password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         className="pl-10 pr-10 h-12 border-gray-200 dark:border-gray-600 focus:border-[#2f57ef] focus:ring-[#2f57ef]"
+                        value={formData.password}
+                        onChange={handleInputChange}
                         required
                       />
                       <button
@@ -99,20 +202,15 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                   <Button 
                     type="submit" 
                     className="w-full h-12 bg-[#2f57ef] hover:bg-[#2347d4] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                    disabled={loading}
                   >
-                    Se connecter
+                    {loading ? "Connexion..." : "Se connecter"}
                   </Button>
                 </form>
-
-                <div className="text-center">
-                  <button className="text-sm text-[#2f57ef] hover:underline">
-                    Mot de passe oublié ?
-                  </button>
-                </div>
               </TabsContent>
 
               <TabsContent value="register" className="space-y-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleRegister} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">Prénom</Label>
@@ -120,8 +218,11 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                         <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
                           id="firstName"
+                          name="firstName"
                           placeholder="Prénom"
                           className="pl-10 h-12 border-gray-200 dark:border-gray-600 focus:border-[#2f57ef] focus:ring-[#2f57ef]"
+                          value={formData.firstName}
+                          onChange={handleInputChange}
                           required
                         />
                       </div>
@@ -132,8 +233,11 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                         <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
                           id="lastName"
+                          name="lastName"
                           placeholder="Nom"
                           className="pl-10 h-12 border-gray-200 dark:border-gray-600 focus:border-[#2f57ef] focus:ring-[#2f57ef]"
+                          value={formData.lastName}
+                          onChange={handleInputChange}
                           required
                         />
                       </div>
@@ -146,8 +250,11 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                       <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id="birthDate"
+                        name="birthDate"
                         type="date"
                         className="pl-10 h-12 border-gray-200 dark:border-gray-600 focus:border-[#2f57ef] focus:ring-[#2f57ef]"
+                        value={formData.birthDate}
+                        onChange={handleInputChange}
                         required
                       />
                     </div>
@@ -159,9 +266,12 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id="registerEmail"
+                        name="email"
                         type="email"
                         placeholder="votre@email.com"
                         className="pl-10 h-12 border-gray-200 dark:border-gray-600 focus:border-[#2f57ef] focus:ring-[#2f57ef]"
+                        value={formData.email}
+                        onChange={handleInputChange}
                         required
                       />
                     </div>
@@ -173,9 +283,12 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id="registerPassword"
+                        name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         className="pl-10 pr-10 h-12 border-gray-200 dark:border-gray-600 focus:border-[#2f57ef] focus:ring-[#2f57ef]"
+                        value={formData.password}
+                        onChange={handleInputChange}
                         required
                       />
                       <button
@@ -191,8 +304,9 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                   <Button 
                     type="submit" 
                     className="w-full h-12 bg-[#2f57ef] hover:bg-[#2347d4] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                    disabled={loading}
                   >
-                    S'inscrire
+                    {loading ? "Inscription..." : "S'inscrire"}
                   </Button>
                 </form>
               </TabsContent>
@@ -212,6 +326,7 @@ export const AuthPage = ({ onLogin }: AuthPageProps) => {
                 onClick={handleGoogleAuth}
                 variant="outline"
                 className="w-full mt-4 h-12 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                disabled={loading}
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
